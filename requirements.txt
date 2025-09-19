@@ -1,0 +1,8 @@
+# Stock Game Requirements
+# This project uses only Python standard library modules
+# No external dependencies required
+
+# Optional dependencies for enhanced features:
+# matplotlib>=3.5.0  # For plotting stock price charts (future feature)
+# pandas>=1.3.0      # For data analysis (future feature)
+# requests>=2.25.0   # For real stock data API (future feature)
