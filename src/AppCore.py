@@ -149,7 +149,7 @@ class AppCore:
             else:
                 raise KeyError(f"Key '{key}' not found in language '{lang}'. Available keys: {list(self._lang_cache[lang].keys())}")
         except Exception as e:
-            return False, str(e), "AppCore.find_keys_by_value, R127-152"
+            return False, str(e), "AppCore.text, R127-152"
                 
     def clear_screen(self):
         """
