@@ -7,10 +7,10 @@ import traceback
 import time
 
 #internal modules
-from src.system import System
+from AppCore import System
 
 #Global system instance
-class vars:
+class GlobalState:
     system = System()
     
     def __init__(self):
@@ -25,4 +25,4 @@ class vars:
         self.command_history = []
         self.error_log = []
 
-    
+global_state = GlobalState()
