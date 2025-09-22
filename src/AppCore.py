@@ -30,13 +30,13 @@ class AppCore:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Error loading JSON from {file_path}: {e}")
-            return False
+            return False, str(e), "AppCore.load_json, R19-33"
 
     def save_json(self, data, file_path, key=None):
         """
         딕셔너리를 json 파일로 저장하는 함수 (원자적 쓰기 적용)
 
-        실패 시 False 반환, 성공 시 True 반환
+        실패 시 False, error 메시지, 컨텍스트 태그 반환, 성공 시 True 반환
 
         Args:
             data (dict): 저장할 데이터
@@ -87,7 +87,7 @@ class AppCore:
                     os.unlink(temp_file_path)
                 except OSError:
                     pass
-            return False
+            return False, str(e), "AppCore.save_json, R35-90"
 
     def find_keys_by_value(self, json_data, threshold, comparison_type):
         """
@@ -101,25 +101,28 @@ class AppCore:
         Returns:
             List[str]: 조건을 만족하는 키들의 리스트
         """
-        matching_keys = []
-        comparison_type = comparison_type.lower()
+        try:
+            matching_keys = []
+            comparison_type = comparison_type.lower()
 
-        if comparison_type == "above":
-            for key, value in json_data.items():
-                if isinstance(value, (int, float)) and value > threshold:
-                    matching_keys.append(key)
+            if comparison_type == "above":
+                for key, value in json_data.items():
+                    if isinstance(value, (int, float)) and value > threshold:
+                        matching_keys.append(key)
+                return matching_keys
+            elif comparison_type == "below":
+                for key, value in json_data.items():
+                    if isinstance(value, (int, float)) and value < threshold:
+                        matching_keys.append(key)
+                return matching_keys
+            elif comparison_type == "equal":
+                for key, value in json_data.items():
+                    if value == threshold:
+                        matching_keys.append(key)
+                return matching_keys
             return matching_keys
-        elif comparison_type == "below":
-            for key, value in json_data.items():
-                if isinstance(value, (int, float)) and value < threshold:
-                    matching_keys.append(key)
-            return matching_keys
-        elif comparison_type == "equal":
-            for key, value in json_data.items():
-                if value == threshold:
-                    matching_keys.append(key)
-            return matching_keys
-        return matching_keys
+        except Exception as e:
+            return False, str(e), "AppCore.find_keys_by_value, R92-125"
 
     def text(self, lang, key):
         """
@@ -129,21 +132,24 @@ class AppCore:
             lang (str): 언어 설정
             key (str): 텍스트 키
         """
-        if lang not in self.lang:
-            raise ValueError(f"Language '{lang}' not supported. Available languages: {self.lang}")
+        try:
+            if lang not in self.lang:
+                raise ValueError(f"Language '{lang}' not supported. Available languages: {self.lang}")
 
-        # 캐시 확인
-        if lang not in self._lang_cache:
-            lang_data = self.load_json(f"./language/{lang}.json")
-            if lang_data is False:
-                raise FileNotFoundError(f"Language file for '{lang}' could not be loaded.")
-            self._lang_cache[lang] = lang_data
+            # 캐시 확인
+            if lang not in self._lang_cache:
+                lang_data = self.load_json(f"./language/{lang}.json")
+                if lang_data is False:
+                    raise FileNotFoundError(f"Language file for '{lang}' could not be loaded.")
+                self._lang_cache[lang] = lang_data
 
-        # 텍스트 반환
-        if key in self._lang_cache[lang]:
-            return self._lang_cache[lang][key]
-        else:
-            raise KeyError(f"Key '{key}' not found in language '{lang}'. Available keys: {list(self._lang_cache[lang].keys())}")
+            # 텍스트 반환
+            if key in self._lang_cache[lang]:
+                return self._lang_cache[lang][key]
+            else:
+                raise KeyError(f"Key '{key}' not found in language '{lang}'. Available keys: {list(self._lang_cache[lang].keys())}")
+        except Exception as e:
+            return False, str(e), "AppCore.find_keys_by_value, R127-152"
                 
     def clear_screen(self):
         """
