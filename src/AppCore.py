@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import shutil
+import subprocess
 
 class AppCore:
     """
@@ -155,7 +156,6 @@ class AppCore:
         화면을 지우는 함수
         플랫폼 독립적이고 안전한 방법을 사용합니다.
         """
-        import subprocess
         
         try:
             if os.name == 'nt':  # Windows
