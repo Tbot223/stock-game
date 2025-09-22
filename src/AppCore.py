@@ -85,9 +85,8 @@ class AppCore:
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
                     os.unlink(temp_file_path)
-                except OSError:
-                    pass
-            return False, str(e), "AppCore.save_json, R35-90"
+                except (OSError, Exception) as e:
+                    return False, str(e), "AppCore.save_json, R35-90"
 
     def find_keys_by_value(self, json_data, threshold, comparison_type):
         """
