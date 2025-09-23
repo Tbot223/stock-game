@@ -41,7 +41,7 @@ class StorageManager:
             file_path = f"saves/{save_id}/{save_type}.json"
             return self.core.load_json(file_path)
         except Exception as e:
-            return False, str(e), "StorageManager.load_data, R15-23"
+            return False, str(e), "StorageManager.load_data, R29-44"
         
     def save_data(self, save_data, save_type, save_id):
         """
@@ -57,10 +57,11 @@ class StorageManager:
             실패 시 False, error 메시지, 컨텍스트 태그
         """
         try:
-            if save_id is not None:
-                file_path = f"saves/{save_id}/{save_type}.json"
-                self.core.save_json(save_data, file_path)
-                return True, None, None
+            if save_id is None:
+                return False, "save_id cannot be None. Use save_all to create a new save.", "StorageManager.save_data, R48-64"
+            file_path = f"saves/{save_id}/{save_type}.json"
+            self.core.save_json(save_data, file_path)
+            return True, None, None
 
         except Exception as e:
             return False, str(e), "StorageManager.save_data, R25-33"
@@ -101,7 +102,7 @@ class StorageManager:
                         return True, None, None
                     i += 1
         except Exception as e:
-            return False, str(e), "StorageManager.save_all, R40-50"
+            return False, str(e), "StorageManager.save_all, R69-105"
         
 
 storage_manager = StorageManager()
