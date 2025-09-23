@@ -1,6 +1,7 @@
 #external modules
 import os
 import json
+import time
 
 #internal modules
 import AppCore
@@ -78,8 +79,8 @@ class StorageManager:
             실패 시 False, error 메시지, 컨텍스트 태그
         """
         try:
-            user_data = {"example_key": "example_value"} # self.core.get_user_data()
-            stocks_data = {"example_stock": 100} # self.core.get_stocks_data()
+            user_data = {"example_key": "example_value"} #ss self.menu.get_user_data()
+            stocks_data = {"example_stock": 100} # self.menu.get_stocks_data()
 
             if save_id is not None:
                 file_path_user = f"saves/{save_id}/user.json"
@@ -104,8 +105,59 @@ class StorageManager:
         except Exception as e:
             return False, str(e), "StorageManager.save_all, R69-105"
         
+    def save_metadata(self, save_id):
+        """
+        저장 시간, 유저 이름, 플레이 시간 등 메타데이터 저장
 
-storage_manager = StorageManager()
-# Example usage:
-# storage_manager.save_data({"example_key": "example_value"}, "user", "YESSSSS")
-storage_manager.save_all()
+        Args:
+            save_id (str): 저장 ID (필수)
+        """
+        try:
+            metadata = {
+                "timestamp": time.time(),
+                "user_name": "example_user",  # self.menu.get_user_name()
+                "play_time": 3600  # self.menu.get_play_time()
+            }
+            file_path = f"saves/{save_id}/metadata.json"
+            self.core.save_json(metadata, file_path)
+            return True, None, None
+        except Exception as e:
+            return False, str(e), "StorageManager.save_metadata, R109-123"
+        
+        
+
+"""
+[StorageManager 업데이트 해야할 기능 목록]
+
+    1. save_metadata(save_id)
+    - 저장 시간, 유저 이름, 플레이 시간 등 메타데이터 저장
+    - 세이브 슬롯에 정보 표시 가능, UX 향상
+
+    2. load_metadata(save_id)
+    - 저장된 메타데이터 불러오기
+    - UI에 세이브 정보 표시 가능
+
+    3. list_saves()
+    - saves/ 폴더 내의 모든 세이브 ID를 반환
+    - 유저가 저장 슬롯을 선택하거나 UI에 표시 가능
+
+    4. delete_save(save_id)
+    - 해당 세이브 폴더를 삭제
+    - 오래된 세이브 정리, UI에서 “삭제” 버튼 구현 가능
+
+    5. save_exists(save_id)
+    - 특정 세이브 ID가 존재하는지 확인
+    - 덮어쓰기 여부 판단, 경고 메시지 출력에 활용
+
+    6. backup_save(save_id)
+    - 저장 시 backup/ 폴더에 복사본 생성
+    - 데이터 손상 대비, 복구 기능과 연계 가능
+
+    7. validate_save(save_id)
+    - 필수 파일(user.json, stocks.json 등) 존재 여부 확인
+    - 불완전한 세이브 방지, 로딩 안정성 향상
+
+    8. get_latest_save_id()
+        - 가장 최근에 생성된 세이브 ID 반환
+        - 기본 로딩 슬롯 지정에 활용
+"""
