@@ -10,6 +10,19 @@ class AppCore:
 
     JSON 파일 관리, 다국어 지원, 자료 구조 검색 등 
     대부분의 프로그램에 적용 가능한 핵심 시스템 기능을 제공합니다.
+
+    1. JSON 파일 관리: JSON 파일을 안전하게 읽고 쓰는 기능을 제공합니다.
+        - load_json: JSON 파일을 딕셔너리로 불러옵니다.
+        - save_json: 딕셔너리를 JSON 파일로 저장합니다. (원자적 쓰기 적용)
+
+    2. 다국어 지원: 여러 언어로 된 텍스트를 관리하고 반환하는 기능을 제공합니다.
+        - text: 언어 설정에 따라 텍스트를 반환합니다.
+
+    3. 자료 구조 검색: 딕셔너리에서 특정 조건을 만족하는 키를 찾는 기능을 제공합니다.
+        - find_keys_by_value: 딕셔너리에서 특정 값 이상을 가진 키들을 찾습니다.
+
+    4. 화면 지우기: 플랫폼 독립적으로 화면을 지우는 기능을 제공합니다.
+        - clear_screen: 화면을 지웁니다.
     """
     def __init__(self):
         self.config = self.load_json("data/config.json")
@@ -21,10 +34,14 @@ class AppCore:
         """
         json 파일을 딕셔너리로 불러오는 함수
 
-        실패 시 False 반환, 성공 시 딕셔너리 반환
+        실패 시 False, error 메시지, 컨텍스트 태그 반환, 성공 시 딕셔너리 반환
 
         Args:
             file_path (str): 불러올 파일 경로
+
+        Returns:
+            dict: 불러온 데이터
+            실패 시 False, error 메시지, 컨텍스트 태그
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -37,12 +54,14 @@ class AppCore:
         """
         딕셔너리를 json 파일로 저장하는 함수 (원자적 쓰기 적용)
 
-        실패 시 False, error 메시지, 컨텍스트 태그 반환, 성공 시 True 반환
-
         Args:
             data (dict): 저장할 데이터
             file_path (str): 저장할 파일 경로
             key (str): 저장할 데이터의 키 (선택적)
+        
+        Returns:
+            bool: 저장 성공 여부
+            실패 시 False, error 메시지, 컨텍스트 태그 반환
         """
         # 디렉토리가 존재하지 않으면 생성
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -78,7 +97,7 @@ class AppCore:
             
             # 원자적 이동
             shutil.move(temp_file_path, file_path)
-            return True
+            return True, None, None
             
         except Exception as e:
             print(f"Error saving JSON to {file_path}: {e}")
@@ -100,6 +119,7 @@ class AppCore:
 
         Returns:
             List[str]: 조건을 만족하는 키들의 리스트
+            실패 시 False, error 메시지, 컨텍스트 태그 반환
         """
         try:
             matching_keys = []

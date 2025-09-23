@@ -1,4 +1,4 @@
-#export modules
+#external modules
 import os
 import json
 import random
@@ -7,11 +7,11 @@ import traceback
 import time
 
 #internal modules
-from AppCore import System
+import AppCore
 
 #Global system instance
 class GlobalState:
-    system = System()
+    system = AppCore.AppCore()
     
     def __init__(self):
         self.start_time = datetime.datetime.now()
