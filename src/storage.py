@@ -14,6 +14,7 @@ class StorageManager:
         self.base_dir = "saves"
         os.makedirs(self.base_dir, exist_ok=True)
 
+    def _generate_save_id(self):
         """
         saves/save_1, save_2, ... 중 존재하지 않는 가장 낮은 번호를 찾아 반환
         """
