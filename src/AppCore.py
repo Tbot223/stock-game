@@ -25,6 +25,7 @@ class AppCore:
         - clear_screen: 화면을 지웁니다.
     """
     def __init__(self):
+        os.makedirs("language", exist_ok=True)
         self.lang = [os.path.splitext(file)[0] for file in os.listdir("./language")]
         self._lang_cache = {}  # 언어 캐시 딕셔너리
 
