@@ -27,6 +27,8 @@ class AppCore:
     4. 예외 위치 추적: 예외가 발생한 위치를 추적하고 관련 정보를 반환하는 기능을 제공합니다.
         - get_exception_location: 예외가 발생한 위치를 반환합니다.
     """
+    SCREEN_CLEAR_LINES = 50  # 매직 넘버를 상수로
+
     def __init__(self):
         os.makedirs("language", exist_ok=True)
         self.lang = [os.path.splitext(file)[0] for file in os.listdir("./language")]
@@ -94,8 +96,8 @@ class AppCore:
 
             # 캐시 확인
             if lang not in self._lang_cache:
-                lang_data = self.FileManager.load_json(f"./language/{lang}.json")
-                if lang_data is False:
+                ok, err, ctx, lang_data = self.FileManager.load_json(f"./language/{lang}.json")
+                if not ok:
                     raise FileNotFoundError(f"Language file for '{lang}' could not be loaded.")
                 self._lang_cache[lang] = lang_data
 
@@ -124,7 +126,7 @@ class AppCore:
                 subprocess.run('clear', shell=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             # 명령어 실행 실패 시 대체
-            print('\n' * 50)
+            print('\n' * self.SCREEN_CLEAR_LINES)
 
 class FileManager():
     """
@@ -201,11 +203,13 @@ class FileManager():
                 - 컨텍스트 태그 (str or None)
                 - 최종/에러 데이터 (None or dict)
         """
-        # 디렉토리가 존재하지 않으면 생성
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        temp_file_path = None  # 임시 파일 경로 초기화
         try:
+            # 디렉토리가 존재하지 않으면 생성
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+            # 임시 파일 경로 초기화
+            temp_file_path = None  
+
             # 저장할 최종 데이터 준비
             if key is not None:
                 # key가 None이 아닌 경우 기존 데이터에 추가
@@ -251,11 +255,12 @@ class FileManager():
                 - 컨텍스트 태그 (str or None)
                 - 최종/에러 데이터 (None or dict)
         """
-        # 디렉토리가 존재하지 않으면 생성
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-        temp_file_path = None  # 임시 파일 경로 초기화
         try:
+            # 디렉토리가 존재하지 않으면 생성
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            # 임시 파일 경로 초기화
+            temp_file_path = None  
             # 원자적 쓰기: 임시 파일에 먼저 쓰기
             with tempfile.NamedTemporaryFile(
                 mode='w', 
@@ -284,7 +289,11 @@ class ExceptionTracker():
     """
     ExceptionTracker 클래스는 예외 발생 시 위치 정보를 추적하고 관련 정보를 반환하는 기능을 제공합니다.
     
+    1. 예외 위치 추적: 예외가 발생한 위치를 추적하고 관련 정보를 반환하는 기능을 제공합니다.
+        - get_exception_location: 예외가 발생한 위치를 반환합니다.
 
+    2. 예외 정보 추적: 예외의 정보를 추적하고 관련 정보를 반환하는 기능을 제공합니다.
+        - get_exception_info: 예외의 정보를 반환합니다.
     """
 
     def __init__(self):
