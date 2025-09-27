@@ -6,8 +6,12 @@ import shutil
 import subprocess
 import traceback
 import time
+from typing import NamedTuple
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 # internal modules
+import Result
+
 class AppCore:
     """
     AppCore 클래스는 통합적으로 여러 프로그램의 핵심 시스템 기능을 제공합니다.
@@ -36,9 +40,12 @@ class AppCore:
         self.FileManager = FileManager()
         self.exception_tracker = ExceptionTracker()
 
-    def find_keys_by_value(self, json_data, threshold, comparison_type):
+    def find_keys_by_value(self, json_data: Dict, threshold: Any, comparison_type: str) -> Result:
         """
         딕셔너리에서 특정 값 이상을 가진 키들을 찾는 함수
+
+        만약 글자일 경우 equal만 지원합니다.
+        (bit 비교 지원 예정)
 
         Args:
             comparison_type (str): 비교 유형 ("above", "below", "equal")
@@ -56,29 +63,33 @@ class AppCore:
             matching_keys = []
             comparison_type = comparison_type.lower()
 
-            if comparison_type == "above":
-                for key, value in json_data.items():
-                    if isinstance(value, (int, float)) and value > threshold:
+            if comparison_type == "above": # 초과
+                for key, value in json_data.items(): # dict 순회
+                    if value > threshold: # > 비교
                         matching_keys.append(key)
                 return True, None, None, matching_keys
-            elif comparison_type == "below":
+            elif comparison_type == "below": # 미만
                 for key, value in json_data.items():
-                    if isinstance(value, (int, float)) and value < threshold:
+                    if value < threshold:
                         matching_keys.append(key)
                 return True, None, None, matching_keys
-            elif comparison_type == "equal":
+            elif comparison_type == "equal": # 동일
                 for key, value in json_data.items():
                     if value == threshold:
                         matching_keys.append(key)
-                return True, None, None, matching_keys
+                return Result(True, None, None, matching_keys)
             else:
                 raise ValueError("Invalid comparison_type. Use 'above', 'below', or 'equal'.")
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
-    def text(self, lang, key):
+    def text(self, lang: str, key: str) -> Result:
         """
         언어 설정에 따라 텍스트를 반환하는 함수
+
+        Fallback 메커니즘이 없습니다.
+        호출 전에 언어와 키가 유효한지 확인해야 합니다.
+        실패 시 캐시 초기화 및 예외 처리합니다.
 
         Args:
             lang (str): 언어 설정
@@ -91,24 +102,24 @@ class AppCore:
                 - 최종/에러 데이터 (str or dict)
         """
         try:
-            if lang not in self.lang:
+            if lang not in self.lang: # 언어 확인
                 raise ValueError(f"Language '{lang}' not supported. Available languages: {self.lang}")
 
             # 캐시 확인
             if lang not in self._lang_cache:
-                ok, err, ctx, lang_data = self.FileManager.load_json(f"./language/{lang}.json")
-                if not ok:
+                cache = self.FileManager.load_json(f"./language/{lang}.json")
+                if not cache.success:
                     raise FileNotFoundError(f"Language file for '{lang}' could not be loaded.")
-                self._lang_cache[lang] = lang_data
+                self._lang_cache[lang] = cache.data
 
             # 텍스트 반환
             if key in self._lang_cache[lang]:
-                return True, None, None, self._lang_cache[lang][key]
+                return Result(True, None, None, self._lang_cache[lang][key])
             else:
                 raise KeyError(f"Key '{key}' not found in language '{lang}'. Available keys: {list(self._lang_cache[lang].keys())}")
         except Exception as e:
             self._lang_cache = {}  # 캐시 초기화
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def clear_screen(self):
         """
@@ -143,7 +154,7 @@ class FileManager():
     def __init__(self):
         self.exception_tracker = ExceptionTracker()
 
-    def load_json(self, file_path):
+    def load_json(self, file_path: str) -> Result:
         """
         json 파일을 딕셔너리로 불러오는 함수
 
@@ -159,10 +170,10 @@ class FileManager():
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                return True, None, None, json.load(f)
+                return Result(True, None, None, json.load(f))
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Error loading JSON from {file_path}: {e}")
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
         
     def load_file(self, file_path):
         """
@@ -180,10 +191,10 @@ class FileManager():
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                return True, None, None, f.read()
+                return Result(True, None, None, f.read())
         except Exception as e:
             print(f"Error loading file from {file_path}: {e}")
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def save_json(self, data, file_path, key=None, serialization=False):
         """
@@ -213,13 +224,15 @@ class FileManager():
             # 저장할 최종 데이터 준비
             if key is not None:
                 # key가 None이 아닌 경우 기존 데이터에 추가
+                cache = self.load_json(file_path)
                 if os.path.exists(file_path):
-                    ok, err, ctx, existing_data = self.load_json(file_path)
+                    pass # 파일이 존재하면 기존 데이터를 불러옴
                 else:
                     raise FileNotFoundError(f"File '{file_path}' does not exist for updating with key '{key}'.")
-                if not ok:
+                if not cache.success:
                     raise ValueError(f"Failed to load existing JSON file: {file_path}")
                 
+                existing_data = cache.data
                 existing_data[key] = data
                 final_data = existing_data
             else:
@@ -228,8 +241,8 @@ class FileManager():
             
             # 원자적 쓰기 수행
             self.Atomic_write(json.dumps(final_data, ensure_ascii=False, indent=4) if serialization else json.dumps(final_data), file_path)
-            return True, None, None, None
-            
+            return Result(True, None, None, None)
+
         except Exception as e:
             print(f"Error saving JSON to {file_path}: {e}")
             # 임시 파일 정리 (이동 실패 시)
@@ -237,7 +250,7 @@ class FileManager():
                 try:
                     os.unlink(temp_file_path)
                 except (OSError, Exception) as e:
-                    return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+                    return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
                 
     def Atomic_write(self, data, file_path):
         """
@@ -274,7 +287,7 @@ class FileManager():
             
             # 원자적 이동
             shutil.move(temp_file_path, file_path)
-            return True, None, None, None
+            return Result(True, None, None, None)
             
         except Exception as e:
             print(f"Error during atomic write to {file_path}: {e}")
@@ -283,7 +296,7 @@ class FileManager():
                 try:
                     os.unlink(temp_file_path)
                 except (OSError, Exception) as e:
-                    return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e), self.exception_tracker.get_exception_info(e)
+                    return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
                 
 class ExceptionTracker():
     """
@@ -317,10 +330,10 @@ class ExceptionTracker():
         try:
             tb = traceback.extract_tb(error.__traceback__)
             frame = tb[-1]  # 가장 최근의 프레임
-            return True, None, None, f"'{frame.filename}', line {frame.lineno}, in {frame.name}"
+            return Result(True, None, None, f"'{frame.filename}', line {frame.lineno}, in {frame.name}")
         except Exception as e:
             print("An error occurred while handling another exception. This may indicate a critical issue.")
-            return False, f"{type(e).__name__} :{str(e)}", "AppCore.get_exception_location, R217-282", traceback.format_exc()
+            return Result(False, f"{type(e).__name__} :{str(e)}", "AppCore.ExceptionTracker.get_exception_location, R315-336", traceback.format_exc())
 
     def get_exception_info(self, error, user_input=None, params=None):
         """
@@ -380,7 +393,7 @@ class ExceptionTracker():
                     "params": params
                 }
             }
-            return True, None, None, error_info
+            return Result(True, None, None, error_info)
         except Exception as e:
             print("An error occurred while handling another exception. This may indicate a critical issue.")
-            return False, f"{type(e).__name__} :{str(e)}", "AppCore.get_exception_location, R217-282", traceback.format_exc()
+            return Result(False, f"{type(e).__name__} :{str(e)}", "AppCore.ExceptionTracker.get_exception_location, R338-399", traceback.format_exc())

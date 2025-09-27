@@ -6,7 +6,7 @@ import shutil
 
 # internal modules
 import AppCore
-
+import Result
 
 class StorageManager:
     """
@@ -79,9 +79,9 @@ class StorageManager:
         """
         try:
             file_path = f"saves/{save_id}/{save_type}.json"
-            return True, None, None, self.core.FileManager.load_json(file_path)
+            return Result(True, None, None, self.core.FileManager.load_json(file_path))
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def save_data(self, save_data, save_type, save_id):
         """
@@ -104,10 +104,10 @@ class StorageManager:
                 raise ValueError("save_id cannot be None. Use save_all() to create a new save.")
             file_path = f"saves/{save_id}/{save_type}.json"
             self.FileManager.save_json(save_data, file_path)
-            return True, None, None, None
+            return Result(True, None, None, None)
 
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def save_all(self, save_id=None):
         """
@@ -133,7 +133,7 @@ class StorageManager:
                 self.save_metadata(save_id)
                 self.FileManager.save_json(user_data, file_path_user)
                 self.FileManager.save_json(stocks_data, file_path_stocks)
-                return True, None, None, None
+                return Result(True, None, None, None)
             else:
                 i = 1
                 while True:
@@ -147,10 +147,10 @@ class StorageManager:
                         self.FileManager.save_json(user_data, user_path)
                         self.FileManager.save_json(stocks_data, stocks_path)
                         #still developing
-                        return True, None, None, None
+                        return Result(True, None, None, None)
                     i += 1
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def save_metadata(self, save_id):
         """
@@ -174,10 +174,10 @@ class StorageManager:
             }
             file_path = f"saves/{save_id}/metadata.json"
             self.FileManager.save_json(metadata, file_path)
-            return True, None, None, None
+            return Result(True, None, None, None)
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
-        
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
+
     def load_metadata(self, save_id):
         """
         저장된 메타데이터 불러오기
@@ -194,10 +194,10 @@ class StorageManager:
         """
         try:
             file_path = f"saves/{save_id}/metadata.json"
-            return True, None, None, self.FileManager.load_json(file_path)
+            return Result(True, None, None, self.FileManager.load_json(file_path))
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
-        
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
+
     def list_saves(self):
         """
         saves/ 폴더 내의 모든 저장 ID를 반환
@@ -211,9 +211,9 @@ class StorageManager:
         """
         try:
             saves = os.listdir(self.base_dir)
-            return True, None, None, saves
+            return Result(True, None, None, saves)
         except Exception as e:
-            return False, str(e), "StorageManager.list_saves, R145-160"
+            return Result(False, str(e), self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
         
     def delete_save(self, save_id):
         """
@@ -233,11 +233,11 @@ class StorageManager:
             save_path = os.path.join(self.base_dir, save_id)
             if os.path.exists(save_path):
                 shutil.rmtree(save_path)
-                return True, None, None, None
+                return Result(True, None, None, None)
             else:
                 raise FileNotFoundError(f"Save ID '{save_id}' does not exist.")
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def save_exists(self, save_id):
         """
@@ -255,9 +255,9 @@ class StorageManager:
         """
         try:
             save_path = os.path.join(self.base_dir, save_id)
-            return True, None, None, os.path.exists(save_path)
+            return Result(True, None, None, os.path.exists(save_path))
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
 
     def validate_save(self, save_id):
         """
@@ -284,13 +284,13 @@ class StorageManager:
                 else:
                     continue
             if missing_files != []:
-                
-                return True, None, None, {"valid": False, "missing_files": missing_files}
 
-            return True, None, None, {"valid": True, "missing_files": None}
+                return Result(True, None, None, {"valid": False, "missing_files": missing_files})
+
+            return Result(True, None, None, {"valid": True, "missing_files": None})
         except Exception as e:
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
-        
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
+
     def get_latest_save_id(self):
         """
         가장 최근에 생성된 저장 ID 반환
@@ -322,12 +322,10 @@ class StorageManager:
                         continue
             if latest_save is None:
                 raise ValueError("No valid saves found.")
-            return True, None, None, latest_save
+            return Result(True, None, None, latest_save)
         except ValueError as e:
-            
-            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
-                
-            
+            return Result(False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(e).data, self.exception_tracker.get_exception_info(e).data)
+        
 # StorageManager().save_all()
         
 # print(StorageManager().validate_save("save_1"))
