@@ -10,9 +10,54 @@ import AppCore
 
 class StorageManager:
     """
+    StorageManager는 저장 및 불러오기 기능을 담당합니다.
+
+    data 저장, 불러오기, 삭제, 목록화, 유효성 검사 등을 수행합니다.
+    모든 데이터는 JSON 형식으로 저장됩니다.
+    기본 저장 경로는 ./saves/입니다.
+    백업 기능은 추후 구현 예정입니다.
+
+    1. load_data(save_type, save_id="latest")
+        - 특정 저장 ID에서 지정된 유형의 데이터를 불러옵니다.
+
+    2. save_data(save_data, save_type, save_id)
+        - 특정 저장 ID에 지정된 유형의 데이터를 저장합니다.
+
+    3. save_all(save_id=None)
+        - user, stocks 데이터를 모두 저장합니다.
+        - save_id가 None이면 새로운 ID를 생성합니다.
+        - save_id가 주어지면 해당 ID에 데이터를 덮어씁니다.
+        - 새로운 저장을 생성할 때는 save_all을 사용해야 합니다.
+
+    4. save_metadata(save_id)
+        - 저장 시간, 유저 이름, 플레이 시간 등 메타데이터 저장
+
+    5. load_metadata(save_id)
+        - 저장된 메타데이터 불러오기
+
+    6. list_saves()
+        - saves/ 폴더 내의 모든 저장 ID를 반환합니다.
+        
+    7. delete_save(save_id)
+        - 해당 저장 폴더를 삭제합니다.
+
+    8. save_exists(save_id)
+        - 특정 저장 ID가 존재하는지 확인합니다.
+
+    9. validate_save(save_id)
+        - 필수 파일(user.json, stocks.json 등) 존재 여부 확인
+        - 누락된 파일 목록 반환
+
+    10. get_latest_save_id()
+        - 가장 최근에 생성된 저장 ID 반환
+
+    11. backup_save(save_id)
+        - 현재 필요 없음, 나중에 필요하면 구현
     """
     def __init__(self):
         self.core = AppCore.AppCore()
+        self.FileManager = AppCore.FileManager
+        self.exception_tracker = AppCore.ExceptionTracker()
         self.base_dir = "saves"
         self.backup_dir = "backup"
         os.makedirs(self.base_dir, exist_ok=True)
@@ -24,15 +69,19 @@ class StorageManager:
         Args:
             save_type (str): 불러올 데이터 유형 (stocks, user)
             save_id (str): 불러올 저장 ID (선택적, 기본값 "latest")
+
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종 데이터 (dict)  
+            tuple: (bool, str or None, str or None, dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (dict)
         """
         try:
             file_path = f"saves/{save_id}/{save_type}.json"
-            return True, None, None, self.core.load_json(file_path)
+            return True, None, None, self.core.FileManager.load_json(file_path)
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
 
     def save_data(self, save_data, save_type, save_id):
         """
@@ -44,18 +93,21 @@ class StorageManager:
             save_id (str): 저장 ID (필수, 미리 생성한 세이브 파일에만 사용할 것, 세이브 생성은 save_all 사용)
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종/에러 데이터 (None or dict)
+            tuple: (bool, str or None, str or None, None or dict)
+                - 성공 여부 (bool), 
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (None or dict)
         """
         try:
             if save_id is None:
                 raise ValueError("save_id cannot be None. Use save_all() to create a new save.")
             file_path = f"saves/{save_id}/{save_type}.json"
-            self.core.save_json(save_data, file_path)
+            self.FileManager.save_json(save_data, file_path)
             return True, None, None, None
 
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
 
     def save_all(self, save_id=None):
         """
@@ -64,8 +116,12 @@ class StorageManager:
         Args:
             save_id (str): 저장 ID (선택적, 기본값 None - 새로운 ID 생성)
 
-        Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종/에러 데이터 (None or dict)
+        Returns: 
+            tuple: (bool, str or None, str or None, None or dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (None or dict)
         """
         try:
             user_data = {"example_key": "example_value"} #ss self.menu.get_user_data()
@@ -75,8 +131,8 @@ class StorageManager:
                 file_path_user = f"saves/{save_id}/user.json"
                 file_path_stocks = f"saves/{save_id}/stocks.json"
                 self.save_metadata(save_id)
-                self.core.save_json(user_data, file_path_user)
-                self.core.save_json(stocks_data, file_path_stocks)
+                self.FileManager.save_json(user_data, file_path_user)
+                self.FileManager.save_json(stocks_data, file_path_stocks)
                 return True, None, None, None
             else:
                 i = 1
@@ -88,14 +144,13 @@ class StorageManager:
                         user_path = f"saves/{candidate}/user.json"
                         stocks_path = f"saves/{candidate}/stocks.json"
                         self.save_metadata(candidate)
-                        self.core.save_json(user_data, user_path)
-                        self.core.save_json(stocks_data, stocks_path)
+                        self.FileManager.save_json(user_data, user_path)
+                        self.FileManager.save_json(stocks_data, stocks_path)
                         #still developing
                         return True, None, None, None
                     i += 1
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
 
     def save_metadata(self, save_id):
         """
@@ -105,7 +160,11 @@ class StorageManager:
             save_id (str): 저장 ID (필수)
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종/에러 데이터 (None or dict)
+            tuple: (bool, str or None, str or None, None or dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (None or dict)
         """
         try:
             metadata = {
@@ -114,11 +173,10 @@ class StorageManager:
                 "play_time": 3600  # self.menu.get_play_time()
             }
             file_path = f"saves/{save_id}/metadata.json"
-            self.core.save_json(metadata, file_path)
+            self.FileManager.save_json(metadata, file_path)
             return True, None, None, None
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
         
     def load_metadata(self, save_id):
         """
@@ -128,25 +186,32 @@ class StorageManager:
             save_id (str): 불러올 저장 ID (필수)
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종/에러 데이터 (dict)
+            tuple: (bool, str or None, str or None, dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (dict)
         """
         try:
             file_path = f"saves/{save_id}/metadata.json"
-            return True, None, None, self.core.load_json(file_path)
+            return True, None, None, self.FileManager.load_json(file_path)
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
         
     def list_saves(self):
         """
         saves/ 폴더 내의 모든 저장 ID를 반환
 
         Returns:
-            list: 저장 ID 목록
+            tuple: (bool, str or None, str or None, list or dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (list or dict)
         """
         try:
             saves = os.listdir(self.base_dir)
-            return saves
+            return True, None, None, saves
         except Exception as e:
             return False, str(e), "StorageManager.list_saves, R145-160"
         
@@ -158,19 +223,21 @@ class StorageManager:
             save_id (str): 삭제할 저장 ID (필수)
 
         Returns:
-            bool: 삭제 성공 여부
-            실패 시 False, error 메시지, 컨텍스트 태그
+            tuple: (bool, str or None, str or None, dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 최종/에러 데이터 (None or dict)
         """
         try:
             save_path = os.path.join(self.base_dir, save_id)
             if os.path.exists(save_path):
                 shutil.rmtree(save_path)
-                return True, None, None
+                return True, None, None, None
             else:
                 raise FileNotFoundError(f"Save ID '{save_id}' does not exist.")
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
 
     def save_exists(self, save_id):
         """
@@ -180,14 +247,17 @@ class StorageManager:
             save_id (str): 확인할 저장 ID (필수)
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 존재 여부/에러 데이터 (bool or dict)
+            tuple: (bool, str or None, str or None, bool or dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 존재 여부/에러 데이터 (bool or dict)
         """
         try:
             save_path = os.path.join(self.base_dir, save_id)
             return True, None, None, os.path.exists(save_path)
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
 
     def validate_save(self, save_id):
         """
@@ -197,7 +267,11 @@ class StorageManager:
             save_id (str): 확인할 저장 ID (필수)
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 존재 여부/에러 데이터 (dict)
+            tuple: (bool, str or None, str or None, dict)
+                - 성공 여부 (bool)
+                - error 메시지 (str or None)
+                - 컨텍스트 태그 (str or None)
+                - 존재 여부/에러 데이터 (dict)
         """
         try:
             required_files = ["user.json", "stocks.json", "metadata.json"]
@@ -215,15 +289,18 @@ class StorageManager:
 
             return True, None, None, {"valid": True, "missing_files": None}
         except Exception as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
         
     def get_latest_save_id(self):
         """
         가장 최근에 생성된 저장 ID 반환
 
         Returns:
-            tuple: 성공 여부 (bool), error 메시지 (str or None), 컨텍스트 태그 (str or None), 최종/에러 데이터 (str or dict)
+            tuple: (bool, str or None, str or None, str or dict)
+            - 성공 여부 (bool)
+            - error 메시지 (str or None)
+            - 컨텍스트 태그 (str or None)
+            - 최종/에러 데이터 (str or dict)
         """
         try:
             saves = self.list_saves()
@@ -247,8 +324,8 @@ class StorageManager:
                 raise ValueError("No valid saves found.")
             return True, None, None, latest_save
         except ValueError as e:
-            error_info = self.core.get_exception_location(e)
-            return False, f"{type(e).__name__} :{str(e)}", error_info[3]['location_msg'], error_info
+            
+            return False, f"{type(e).__name__} :{str(e)}", self.exception_tracker.get_exception_location(), self.exception_tracker.get_exception_info()
                 
             
 # StorageManager().save_all()
